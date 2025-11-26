@@ -44,6 +44,7 @@ impl DiskStat {
 fn run_live_disk(interval: u64, device_filter: Option<&str>) {
     let mut prev: HashMap<String, DiskStat> = HashMap::new();
     let mut printed_header = false;
+    let mut output_count = 0;
 
     loop {
         let mut curr: HashMap<String, DiskStat> = HashMap::new();
@@ -62,7 +63,7 @@ fn run_live_disk(interval: u64, device_filter: Option<&str>) {
         }
         let now = Local::now().format("%H:%M:%S").to_string();
 
-        if !printed_header {
+        if !printed_header || output_count % 40 == 0 {
             println!(
                 "{:<8} {:<10} {:>10} {:>10} {:>12} {:>12} {:>8} {:>12} {:>12} {:>12} {:>12}",
                 "Time", "Device", "Reads/s", "Writes/s", "rd_kB/s", "wr_kB/s",
@@ -109,6 +110,7 @@ fn run_live_disk(interval: u64, device_filter: Option<&str>) {
                     "{:<8} {:<10} {:>10.2} {:>10.2} {:>12.2} {:>12.2} {:>8.2} {:>12.2} {:>12.2} {:>12.2} {:>12.2}",
                     now, dev, r_s, w_s, rd_kbs, wr_kbs, qlen, await_rd_ms, await_wr_ms, total_kb, total_iops
                 );
+                output_count += 1;
             }
         }
         prev = curr;
@@ -116,12 +118,12 @@ fn run_live_disk(interval: u64, device_filter: Option<&str>) {
     }
 }
 
-
 // ======= CPU =======
 fn run_live_cpu(interval: u64) {
     let mut prev_vals: Option<Vec<u64>> = None;
     let mut prev_guest: u64 = 0;
     let mut printed_header = false;
+    let mut output_count = 0;
 
     loop {
         // Read /proc/stat
@@ -163,7 +165,7 @@ fn run_live_cpu(interval: u64) {
             let guestp = (guest - prev_guest) as f64 * factor;
 
             let now = Local::now().format("%H:%M:%S").to_string();
-            if !printed_header {
+            if !printed_header || output_count % 40 == 0 {
                 println!(
                     "{:<8} {:>10} {:>10} {:>10} {:>10} {:>10} {:>8} {:>8} {:>10}",
                     "Time", "User(%)", "Sys(%)", "Idle(%)", "IOWait(%)", "Nice(%)",
@@ -176,6 +178,7 @@ fn run_live_cpu(interval: u64) {
                 now, user, sys, idle, iowait, nice,
                 running.unwrap_or(0), blocked.unwrap_or(0), guestp
             );
+            output_count += 1;
         }
         prev_vals = Some(cpu_vals);
         prev_guest = guest;
@@ -186,6 +189,7 @@ fn run_live_cpu(interval: u64) {
 // ======= MEMORY =======
 fn run_live_mem(interval: u64) {
     let mut printed_header = false;
+    let mut output_count = 0;
 
     loop {
         // Parse /proc/meminfo
@@ -210,7 +214,7 @@ fn run_live_mem(interval: u64) {
         let free_percent = if mem_total > 0.0 { mem_free / mem_total * 100.0 } else { 0.0 };
 
         let now = Local::now().format("%H:%M:%S").to_string();
-        if !printed_header {
+        if !printed_header || output_count % 40 == 0 {
             println!(
                 "{:<8} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10}",
                 "Time", "Used(MB)", "Free(MB)", "%Used", "%Avail", "%Cached", "%Free", "Cached(MB)"
@@ -222,6 +226,7 @@ fn run_live_mem(interval: u64) {
             now,
             used / 1024.0, mem_free / 1024.0, used_percent, avail_percent, cached_percent, free_percent, cached / 1024.0
         );
+        output_count += 1;
         sleep(Duration::from_secs(interval));
     }
 }
@@ -230,6 +235,7 @@ fn run_live_mem(interval: u64) {
 fn run_live_net(interval: u64) {
     let mut prev: HashMap<String, [u64; 8]> = HashMap::new();
     let mut printed_header = false;
+    let mut output_count = 0;
 
     loop {
         let mut curr: HashMap<String, [u64; 8]> = HashMap::new();
@@ -252,7 +258,7 @@ fn run_live_net(interval: u64) {
             }
         }
         let now = Local::now().format("%H:%M:%S").to_string();
-        if !printed_header {
+        if !printed_header || output_count % 40 == 0 {
             println!(
                 "{:<8} {:<10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10}",
                 "Time", "Iface", "rx_kB/s", "tx_kB/s", "rx_pkts", "tx_pkts", "rx_err", "tx_err", "drop"
@@ -277,6 +283,7 @@ fn run_live_net(interval: u64) {
                     drx_packets / interval, dtx_packets / interval,
                     drx_errs / interval, dtx_errs / interval, (drx_drop + dtx_drop) / interval
                 );
+                output_count += 1;
             }
         }
         prev = curr;
