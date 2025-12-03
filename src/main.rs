@@ -10,6 +10,9 @@ use std::{thread::sleep, time::Duration, env, fs::File, io::{BufRead, BufReader,
 use std::collections::HashMap;
 use chrono::Local;
 
+// Increment as tol evolves
+const VERSION_NUMBER: &str = "2.1.3";
+
 // ======= DISK =======
 #[derive(Debug, Clone)]
 struct DiskStat {
@@ -52,7 +55,8 @@ fn run_live_disk(interval: u64, device_filter: Option<&str>) {
             let reader = BufReader::new(file);
             for line in reader.lines().flatten() {
                 if let Some(stat) = DiskStat::from_line(&line) {
-                    if stat.name.starts_with("sd") || stat.name.starts_with("nvme") || stat.name.starts_with("dm-") {
+                    if stat.name.starts_with("sd") || stat.name.starts_with("nvme") || stat.name.starts_with("dm-") || stat.name.starts_with("vd")
+                    || stat.name.starts_with("emcpower") {
                         if let Some(filt) = device_filter {
                             if !stat.name.contains(filt) { continue; }
                         }
@@ -293,6 +297,7 @@ fn run_live_net(interval: u64) {
 
 // ======= USAGE & MAIN =======
 fn usage() {
+    println!("serverstats_grab {}", VERSION_NUMBER);
     eprintln!("livestats_view (CPU, MEM, NET, DISK live delta viewer)");
     eprintln!("Usage:");
     eprintln!("  livestats_view -g <interval_seconds> -pC            # CPU stats");
