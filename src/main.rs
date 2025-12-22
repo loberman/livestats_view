@@ -309,35 +309,67 @@ fn usage() {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 4 || args[1] != "-g" {
-        usage();
-        std::process::exit(1);
-    }
-    let interval = args[2].parse().unwrap_or(1);
-    let mode = args[3].as_str();
+    let args: Vec<String> = env::args().skip(1).collect(); // skip program name
 
-    // Default: no device filter
-    let mut device_filter: Option<&str> = None;
+    let mut interval: u64 = 1;
+    let mut mode: Option<String> = None;
+    let mut device_filter: Option<String> = None;
 
-    // For disk stats: check for optional "-d DEV"
-    if mode == "-pD" {
-        let mut i = 4;
-        while i < args.len() {
-            if args[i] == "-d" && i+1 < args.len() {
-                device_filter = Some(&args[i+1]);
-                i += 2;
-            } else {
-                i += 1;
+    let mut i = 0;
+    while i < args.len() {
+        let arg = &args[i];
+        if arg == "-g" {
+            // "-g 1" form
+            if i + 1 < args.len() {
+                if let Ok(val) = args[i + 1].parse() {
+                    interval = val;
+                    i += 2;
+                    continue;
+                }
             }
+            eprintln!("Error: -g must be followed by interval in seconds.");
+            usage();
+            std::process::exit(1);
+        } else if arg.starts_with("-g") && arg.len() > 2 {
+            // "-g1" form
+            if let Ok(val) = arg[2..].parse() {
+                interval = val;
+                i += 1;
+                continue;
+            }
+            eprintln!("Error: Invalid -gN interval.");
+            usage();
+            std::process::exit(1);
+        } else if arg == "-pC" || arg == "-pM" || arg == "-pN" || arg == "-pD" {
+            mode = Some(arg.clone());
+            i += 1;
+            continue;
+        } else if arg == "-d" {
+            if i + 1 < args.len() {
+                device_filter = Some(args[i + 1].clone());
+                i += 2;
+                continue;
+            } else {
+                eprintln!("Error: -d must be followed by a device filter.");
+                usage();
+                std::process::exit(1);
+            }
+        } else {
+            i += 1;
         }
     }
 
-    match mode {
+    if mode.is_none() {
+        eprintln!("Error: You must specify one of -pC, -pM, -pN, -pD.");
+        usage();
+        std::process::exit(1);
+    }
+
+    match mode.unwrap().as_str() {
         "-pC" => run_live_cpu(interval),
         "-pM" => run_live_mem(interval),
         "-pN" => run_live_net(interval),
-        "-pD" => run_live_disk(interval, device_filter),
+        "-pD" => run_live_disk(interval, device_filter.as_deref()),
         _ => {
             usage();
             std::process::exit(1);
