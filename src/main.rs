@@ -56,7 +56,8 @@ fn run_live_disk(interval: u64, device_filter: Option<&str>) {
             for line in reader.lines().flatten() {
                 if let Some(stat) = DiskStat::from_line(&line) {
                     if stat.name.starts_with("sd") || stat.name.starts_with("nvme") || stat.name.starts_with("dm-") || stat.name.starts_with("vd") 
-                    || stat.name.starts_with("emcpower") || stat.name.starts_with("md") || stat.name.starts_with("drbd") {
+                    || stat.name.starts_with("emcpower") || stat.name.starts_with("md") 
+                        || stat.name.starts_with("drbd") || stat.name.starts_with("scini") {
                         if let Some(filt) = device_filter {
                             if !stat.name.contains(filt) { continue; }
                         }
